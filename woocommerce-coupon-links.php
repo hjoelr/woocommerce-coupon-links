@@ -41,18 +41,25 @@ function cedaro_woocommerce_coupon_links() {
 	 */
 	$query_var = apply_filters( 'woocommerce_coupon_links_query_var', 'coupon_code' );
 
-	// Bail if a coupon code isn't in the query string.
-	if ( empty( $_GET[ $query_var ] ) ) {
-		return;
+	// Bail if a coupon code isn't in the query.
+	if ( empty( get_query_var( $query_var ) ) ) {
+		global $cedaro_coupon;
+		if ( ! empty( $cedaro_coupon ) ) {
+			$coupon = $cedaro_coupon;
+		} else {
+			return;
+		}
+	} else {
+		$coupon = get_query_var( $query_var );
 	}
 
 	// Set a session cookie to persist the coupon in case the cart is empty.
 	WC()->session->set_customer_session_cookie( true );
 
 	// Apply the coupon to the cart if necessary.
-	if ( ! WC()->cart->has_discount( $_GET[ $query_var ] ) ) {
+	if ( ! WC()->cart->has_discount( $coupon ) ) {
 		// WC_Cart::add_discount() sanitizes the coupon code.
-		WC()->cart->add_discount( $_GET[ $query_var ] );
+		WC()->cart->add_discount( $coupon );
 	}
 }
 
@@ -65,10 +72,17 @@ function cedaro_show_coupon_url() {
 	// Get the coupon code query variable.
 	$query_var = apply_filters( 'woocommerce_coupon_links_query_var', 'coupon_code' );
 
+	if ( get_option('permalink_structure') ) {
+		// Rewrite is enabled
+		$url_template = get_home_url() . "/$query_var/{coupon}";
+	} else {
+		$url_template = get_home_url() . "?$query_var={coupon}";
+	}
+
 	?>
 	<p class="form-field coupon_url_field">
 		<span id="coupon-url-label"><?php esc_html_e( 'Coupon URL', 'cedaro-coupon-links' ); ?></span>
-		<span id="coupon-url" data-template="<?php echo esc_attr( get_home_url() . "?$query_var={coupon}" ); ?>"><?php echo esc_html( get_home_url() . "?$query_var=" . get_the_title() ); ?></span>
+		<span id="coupon-url" data-template="<?php echo esc_attr( $url_template ); ?>"><?php echo esc_html( str_replace( '{coupon}', get_the_title(), $url_template ) ); ?></span>
 		<span class="woocommerce-help-tip" data-tip="<?php esc_attr_e( 'This field displays the URL that can be used to directly add this coupon. The URL will work in conjunction with other query string parameters. An example of this would be adding a product to the cart while at the same time applying the coupon.', 'cedaro-coupon-links' ); ?>"></span>
 	</p>
 	<?php
@@ -88,7 +102,54 @@ function cedaro_enqueue_coupon_url_styles() {
 		wp_enqueue_style( 'woocommerce-coupon-links', plugin_dir_url( __FILE__ ) . 'woocommerce-coupon-links-admin.css', array(), '2.0.3', 'all' );
 	}
 }
-add_action( 'wp_loaded', 'cedaro_woocommerce_coupon_links', 30 );
+
+/**
+ * Sets up rewrite rules for coupons.
+ *
+ * @since 2.0.3
+ */
+function cedaro_add_coupon_rewrite() {
+	// Get the coupon code query variable.
+	$query_var = apply_filters( 'woocommerce_coupon_links_query_var', 'coupon_code' );
+
+	add_rewrite_endpoint( $query_var, EP_ALL );
+}
+
+/**
+ * Removes our coupon query arg so as not to interfere with the WP query, see https://core.trac.wordpress.org/ticket/25143
+ *
+ * @param WP_Query $query The current query.
+ *
+ * @since 2.0.3
+ */
+function cedaro_unset_query_arg( $query ) {
+	if ( is_admin() || ! $query->is_main_query() ) {
+		return;
+	}
+
+	// Get the coupon code query variable.
+	$query_var = apply_filters( 'woocommerce_coupon_links_query_var', 'coupon_code' );
+
+	global $cedaro_coupon;
+	$cedaro_coupon = $query->get( $query_var );
+	if ( ! empty( $cedaro_coupon ) ) {
+		// unset coupon var from $wp_query
+		$query->set( $query_var, null );
+		global $wp;
+		// unset ref var from $wp
+		unset( $wp->query_vars[ $query_var ] );
+		// if in home (because $wp->query_vars is empty) and 'show_on_front' is page
+		if ( empty( $wp->query_vars ) && get_option( 'show_on_front' ) === 'page' ) {
+			// reset and re-parse query vars
+			$wp->query_vars['page_id'] = get_option( 'page_on_front' );
+			$query->parse_query( $wp->query_vars );
+		}
+	}
+}
+
+add_action( 'template_redirect', 'cedaro_woocommerce_coupon_links', 9 );
+add_action( 'pre_get_posts', 'cedaro_unset_query_arg' );
 add_action( 'woocommerce_add_to_cart', 'cedaro_woocommerce_coupon_links' );
 add_action( 'woocommerce_coupon_options', 'cedaro_show_coupon_url', 20 );
 add_action( 'admin_enqueue_scripts', 'cedaro_enqueue_coupon_url_styles' );
+add_action( 'init', 'cedaro_add_coupon_rewrite' );
