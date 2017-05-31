@@ -1,11 +1,13 @@
-# WooCommerce Coupon Links [![Build Status](https://travis-ci.org/cedaro/woocommerce-coupon-links.svg?branch=develop)](https://travis-ci.org/cedaro/woocommerce-coupon-links)
+# WooCommerce Coupon Links [![Project Status](https://img.shields.io/badge/status-Deprecated-red.svg)](https://github.com/wildscamp/woocommerce-coupon-links-enhancements) ![No Maintenance Intended](https://img.shields.io/badge/x-No_Maintenance_Intended-red.svg)
+
+__Note:__ This extension has been replaced by the [WooCommerce Coupon Links Enhancements](https://github.com/wildscamp/woocommerce-coupon-links-enhancements) extension.
 
 Automatically apply WooCommerce coupon codes to the cart via a URL.
 
-__Contributors:__ [Luke McDonald](https://github.com/thelukemcdonald), [Brady Vercher](https://twitter.com/bradyvercher)  
-__Requires:__ 4.4  
-__Tested up to:__ 4.7  
-__License:__ [GPL-2.0+](https://www.gnu.org/licenses/gpl-2.0.html)  
+__Contributors:__ [Luke McDonald](https://github.com/thelukemcdonald), [Brady Vercher](https://twitter.com/bradyvercher)
+__Requires:__ 4.4
+__Tested up to:__ 4.7
+__License:__ [GPL-2.0+](https://www.gnu.org/licenses/gpl-2.0.html)
 
 ## Usage
 
